@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: external-dns
+      app.kubernetes.io/name: external-dns
+  template:
+    spec:
+      containers:
+      - args:
+        - --log-level=info
+        - --log-format=text
+        - --publish-internal-services
+        - --policy=upsert-only
+        - --provider=designate
+        - --registry=txt
+        - --interval=1m
+        - --source=service
+        - --source=ingress
+        env:
+        - name: OPENSTACK_CA_FILE
+          value: /etc/openstack/certs/openstack-ca-cert
+        - name: OS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: OS_USERNAME
+              name: cloud-credentials
+        - name: OS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: OS_PASSWORD
+              name: cloud-credentials
+        - name: OS_AUTH_URL
+          valueFrom:
+            secretKeyRef:
+              key: OS_AUTH_URL
+              name: cloud-credentials
+        - name: OS_REGION_NAME
+          valueFrom:
+            secretKeyRef:
+              key: OS_REGION_NAME
+              name: cloud-credentials
+        - name: OS_PROJECT_NAME
+          valueFrom:
+            secretKeyRef:
+              key: OS_PROJECT_NAME
+              name: cloud-credentials
+        - name: OS_USER_DOMAIN_NAME
+          valueFrom:
+            secretKeyRef:
+              key: OS_USER_DOMAIN_NAME
+              name: cloud-credentials
+        - name: OS_INTERFACE
+          valueFrom:
+            secretKeyRef:
+              key: OS_INTERFACE
+              name: cloud-credentials
+        name: external-dns
+        volumeMounts:
+        - mountPath: /etc/openstack/certs
+          name: designate-custom-ca
+          readOnly: true
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: openstack-ca-cert
+            path: openstack-ca-cert
+          name: external-dns
+        name: designate-custom-ca
